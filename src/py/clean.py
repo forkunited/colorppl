@@ -6,9 +6,8 @@ import os
 from collections import OrderedDict
 
 input_file_path = sys.argv[1]
-input_filter_file_path = sys.argv[2]
-output_action_dir = sys.argv[3]
-output_utterance_dir = sys.argv[4]
+output_action_dir = sys.argv[2]
+output_utterance_dir = sys.argv[3]
 
 def read_messy_file(file_path):
     f = open(file_path, 'rt')
@@ -25,9 +24,7 @@ def read_messy_file(file_path):
         f.close()
     return D
 
-def make_action_records(record):
-    actions = []
-
+def make_action_record(record):
     listenerObjs = [dict(), dict(), dict()]
     speakerObjs = [dict(), dict(), dict()]
 
@@ -89,7 +86,7 @@ def make_action_records(record):
     action = dict()
     action["gameid"] = record["gameid"]
     action["roundNum"] = int(record["roundNum"])
-    action["time"] = int(record["clkTime"])
+    action["time"] = int(float(record["clkTime"]))
     action["condition"] = record["condition"]
     action["lClicked"] = clickedLisIndex
     action["sClicked"] = clickedSpIndex
@@ -102,13 +99,18 @@ def make_action_records(record):
         for key in listenerObjs[i]:
             action["l" + key + "_" + str(i)] = listenerObjs[i][key]
             action["s" + key + "_" + str(i)] = speakerObjs[i][key]
+        
         if listenerObjs[i]["Target"] == 1:
             for key in listenerObjs[i]:
-                action["lTarget" + key + "_" + str(i)] = listenerObjs[i][key]
-                action["sTarget" + key + "_" + str(i)] = speakerObjs[i][key]
+                if key != "Target" and key != "Status":
+                    action["lTarget" + key] = listenerObjs[i][key]
 
-    actions.append(action)
-    return actions
+        if speakerObjs[i]["Target"] == 1:
+            for key in speakerObjs[i]:
+                if key != "Target" and key != "Status":
+                    action["sTarget" + key] = speakerObjs[i][key]
+
+    return action
 
 
 def make_utterance_records(round_records):
@@ -157,6 +159,7 @@ def output_csv(file_path, rows):
 
 def output_games(action_dir, utterance_dir, games_to_action_utterances):
     for game, action_utterances in games_to_action_utterances.items():
+        print "Outputting " + game
         output_csv(os.path.join(action_dir, game), action_utterances[0])
         output_csv(os.path.join(utterance_dir, game), action_utterances[1])
 
