@@ -1,0 +1,15 @@
+//webppl test/wppl/split_games_boundaries.wppl --require ../gameppl --gamesListPath <inFile> --outputPath <outFile> --splitIds "[\"id1 (inclusive)\", \"id2 (inclusive)\",...]"
+// tail -n+2 examples/games/raw/filteredCorpus.csv | awk -F"," '{print $1}' | uniq > examples/games/raw/filteredCorpusIds
+// For default split use "[\"8994-5\", \"8574-6\", undefined]"
+// as boundaries within the arbitrary ordering in filteredCorpus.csv
+// webppl test/wppl/game/split_games_boundaries.wppl --require ../gameppl/ --gamesListPath examples/games/raw/filteredCorpusIds --outputPath examples/games/splits/game_34_33_33 --split "[\"8994-5\", \"8574-6\", \"\"]"
+
+var args = util_parseArgs();
+var split = JSON.parse(args["split"]);
+var gamesListPath = args["gamesListPath"];
+var outputPath = args["outputPath"];
+
+var gameIds = gameppl.util.readListFile(gamesListPath);
+
+var split = gameppl.partition.init(gameIds, undefined, ["train", "dev", "test"], split, false, gameppl.partition.type.PARTITION_BOUNDARY);
+gameppl.partition.save(split, outputPath);
