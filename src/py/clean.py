@@ -104,11 +104,13 @@ def make_action_record(record):
             for key in listenerObjs[i]:
                 if key != "Target" and key != "Status":
                     action["lTarget" + key] = listenerObjs[i][key]
+            action["lTargetIndex"] = i;
 
         if speakerObjs[i]["Target"] == 1:
             for key in speakerObjs[i]:
                 if key != "Target" and key != "Status":
                     action["sTarget" + key] = speakerObjs[i][key]
+            action["sTargetIndex"] = i;
 
     return action
 

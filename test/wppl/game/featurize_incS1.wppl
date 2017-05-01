@@ -1,0 +1,81 @@
+// Run with:
+// webppl test/wppl/game/featurize_incS1.wppl --require gameppl --require . --gamesDir examples/games/json --featureVocabDir examples/features/vocab --featureMatrixDir examples/features/mat
+
+var args = util_parseArgs();
+var gamesDir = args["gamesDir"];
+var featureVocabDir = args["featureVocabDir"];
+var featureMatrixDir = args["featureMatrixDir"];
+
+var utteranceFn = gameppl.rgame.getPairedUtterancesFn(gameppl.rgame.senders.SPEAKER);
+var actionFn = gameppl.rgame.getPairedActionsFn(gameppl.rgame.senders.SPEAKER)
+
+var inputFeatureTypes = [
+    {
+        name : "sH_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sH_0" }
+    },
+    {
+        name : "sH_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sH_1" }
+    },
+    {
+        name : "sH_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sH_2" }
+    },
+
+    {
+        name : "sS_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sS_0" }
+    },
+    {
+        name : "sS_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sS_1" }
+    },
+    {
+        name : "sS_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sS_2" }
+    },
+    {
+        name : "sL_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sL_0" }
+    },
+    {
+        name : "sL_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sL_1" }
+    },
+    {
+        name : "sL_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sL_2" }
+    },
+
+    {
+        name : "sTargetIndex", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sTargetIndex" }
+    }
+];
+
+var inputVector = ["sH_0","sH_1","sH_2","sS_0","sS_1","sS_2","sL_0","sL_1","sL_2","sTargetIndex"];
+var inputf = gameppl.feature.initFeatureSet("incS1_in", gamesDir, utteranceFn, actionFn, inputFeatureTypes, inputVector);
+var inputF = gameppl.feature.computeFeatureSet(inputf, gamesDir, gameppl.rgame.getGameUtteranceActionPairs);
+
+var outputFeatureTypes = [
+    {
+        name : "utok", type : gameppl.feature.types.UTTERANCE_TOKEN_ANNOTATION_ENUMERABLE,
+        parameters : {
+            annotation : gameppl.rgame.annotations.LEMMA,
+            minCount : 2,
+            toLowerCase : true,
+            type : gameppl.feature.enumerableTypes.INDEX
+        }
+    }
+];
+
+var outputVector = ["utok"];
+var outputf = gameppl.feature.initFeatureSet("incS1_out", gamesDir, utteranceFn, actionFn, outputFeatureTypes, outputVector);
+var outputF = gameppl.feature.computeFeatureSet(outputf, gamesDir, gameppl.rgame.getGameUtteranceActionPairs);
+
+gameppl.feature.saveFeatureSet(inputf, featureVocabDir + "/incS1_in");
+gameppl.feature.saveFeatureSet(outputf, featureVocabDir + "/incS1_out");
+
+gameppl.feature.saveFeatureMatrix(inputF, featureMatrixDir + "/incS1_in");
+gameppl.feature.saveFeatureMatrix(outputF, featureMatrixDir + "/incS1_out");
