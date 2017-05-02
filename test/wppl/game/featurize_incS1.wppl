@@ -7,7 +7,7 @@ var featureVocabDir = args["featureVocabDir"];
 var featureMatrixDir = args["featureMatrixDir"];
 var splitName = args["splitName"];
 
-var partition = gameppl.partition.load(rootDir + "/examples/games/splits/" + splitName);
+var partition = gameppl.partition.load("examples/games/splits/" + splitName);
 
 var utteranceFn = gameppl.rgame.getPairedUtterancesFn(gameppl.rgame.senders.SPEAKER);
 var actionFn = gameppl.rgame.getPairedActionsFn(gameppl.rgame.senders.SPEAKER)
