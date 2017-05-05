@@ -1,0 +1,55 @@
+// Run with:
+// webppl test/wppl/game/featurize_S_local.wppl --require ../gameppl --require . --splitName game_34_33_33 --gamesDir examples/games/json --featureVocabDir examples/features/vocab --featureMatrixDir examples/features/mat
+
+var args = util_parseArgs();
+var gamesDir = args["gamesDir"];
+var featureVocabDir = args["featureVocabDir"];
+var featureMatrixDir = args["featureMatrixDir"];
+var splitName = args["splitName"];
+
+var partition = gameppl.partition.load("examples/games/splits/" + splitName);
+
+var utteranceFn = gameppl.rgame.getPairedUtterancesFn(gameppl.rgame.senders.SPEAKER);
+var actionFn = gameppl.rgame.getPairedActionsFn(gameppl.rgame.senders.SPEAKER)
+
+var inputFeatureTypes = [
+    {
+        name : "sTargetH", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sTargetH", partName : "train" }
+    },
+    {
+        name : "sTargetS", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sTargetS", partName : "train" }
+    },
+    {
+        name : "sTargetL", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sTargetL", partName : "train" }
+    }
+];
+
+var inputVector = ["sTargetH", "sTargetS", "sTargetL"];
+var inputf = gameppl.feature.initFeatureSet("S_local_in", gamesDir, utteranceFn, actionFn, inputFeatureTypes, inputVector, partition);
+var inputF = gameppl.feature.computeFeatureSet(inputf, gamesDir, gameppl.rgame.getGameUtteranceActionPairs);
+
+var outputFeatureTypes = [
+    {
+        name : "utok", type : gameppl.feature.types.UTTERANCE_TOKEN_ANNOTATION_ENUMERABLE,
+        parameters : {
+            partName : "train",
+            annotation : gameppl.rgame.annotations.LEMMA,
+            minCount : 2,
+            toLowerCase : true,
+            type : gameppl.feature.enumerableTypes.INDEX
+        }
+    }
+];
+
+var outputVector = ["utok"];
+var outputf = gameppl.feature.initFeatureSet("S_local_out", gamesDir, utteranceFn, actionFn, outputFeatureTypes, outputVector, partition);
+var outputF = gameppl.feature.computeFeatureSet(outputf, gamesDir, gameppl.rgame.getGameUtteranceActionPairs);
+
+gameppl.feature.saveFeatureSet(inputf, featureVocabDir + "/S_local_in");
+gameppl.feature.saveFeatureSet(outputf, featureVocabDir + "/S_local_out");
+
+gameppl.feature.saveFeatureMatrix(inputF, featureMatrixDir + "/S_local_in");
+gameppl.feature.saveFeatureMatrix(outputF, featureMatrixDir + "/S_local_out");

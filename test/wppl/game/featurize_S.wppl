@@ -1,0 +1,86 @@
+// Run with:
+// webppl test/wppl/game/featurize_S.wppl --require ../gameppl --require . --splitName game_34_33_33 --gamesDir examples/games/json --featureVocabDir examples/features/vocab --featureMatrixDir examples/features/mat
+
+var args = util_parseArgs();
+var gamesDir = args["gamesDir"];
+var featureVocabDir = args["featureVocabDir"];
+var featureMatrixDir = args["featureMatrixDir"];
+var splitName = args["splitName"];
+
+var partition = gameppl.partition.load("examples/games/splits/" + splitName);
+
+var utteranceFn = gameppl.rgame.getPairedUtterancesFn(gameppl.rgame.senders.SPEAKER);
+var actionFn = gameppl.rgame.getPairedActionsFn(gameppl.rgame.senders.SPEAKER)
+
+var inputFeatureTypes = [
+    {
+        name : "sH_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sH_0", partName : "train" }
+    },
+    {
+        name : "sH_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sH_1", partName : "train" }
+    },
+    {
+        name : "sH_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sH_2", partName : "train" }
+    },
+
+    {
+        name : "sS_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sS_0", partName : "train" }
+    },
+    {
+        name : "sS_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sS_1", partName : "train" }
+    },
+    {
+        name : "sS_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sS_2", partName : "train" }
+    },
+    {
+        name : "sL_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sL_0", partName : "train" }
+    },
+    {
+        name : "sL_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sL_1", partName : "train" }
+    },
+    {
+        name : "sL_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sL_2", partName : "train" }
+    },
+
+    {
+        name : "sTarget",
+        type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sTarget_" }
+    }
+];
+
+var inputVector = ["sH_0","sH_1","sH_2","sS_0","sS_1","sS_2","sL_0","sL_1","sL_2", "sTarget"];
+var inputf = gameppl.feature.initFeatureSet("S_in", gamesDir, utteranceFn, actionFn, inputFeatureTypes, inputVector, partition);
+var inputF = gameppl.feature.computeFeatureSet(inputf, gamesDir, gameppl.rgame.getGameUtteranceActionPairs);
+
+var outputFeatureTypes = [
+    {
+        name : "utok", type : gameppl.feature.types.UTTERANCE_TOKEN_ANNOTATION_ENUMERABLE,
+        parameters : {
+            partName : "train",
+            annotation : gameppl.rgame.annotations.LEMMA,
+            minCount : 2,
+            toLowerCase : true,
+            type : gameppl.feature.enumerableTypes.INDEX
+        }
+    }
+];
+
+var outputVector = ["utok"];
+var outputf = gameppl.feature.initFeatureSet("S_out", gamesDir, utteranceFn, actionFn, outputFeatureTypes, outputVector, partition);
+var outputF = gameppl.feature.computeFeatureSet(outputf, gamesDir, gameppl.rgame.getGameUtteranceActionPairs);
+
+gameppl.feature.saveFeatureSet(inputf, featureVocabDir + "/S_in");
+gameppl.feature.saveFeatureSet(outputf, featureVocabDir + "/S_out");
+
+gameppl.feature.saveFeatureMatrix(inputF, featureMatrixDir + "/S_in");
+gameppl.feature.saveFeatureMatrix(outputF, featureMatrixDir + "/S_out");
