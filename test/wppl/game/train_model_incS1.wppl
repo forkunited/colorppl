@@ -93,16 +93,13 @@ var s1model = s1inc_initTrainedModel({
 
 map(function(datum) {
     var inputIndices = gameppl.matrix.rowTensorToList(datum.input);
-    var inputFeatures = mapIndexed(function(i, dimensionIndex) {
-        var featureName = inputf.vector[i];
-        var feature = gameppl.feature.getFeatureSetFeature(inputf, featureName);
-        var dimension = gameppl.feature.getFeatureDimension(feature, dimensionIndex);
-        return featureName + "_" + dimension;
-    }, inputIndices);
+    var inputFeatures = gameppl.feature.getFeatureSetDimensionsFromIndices(inputf, inputIndices);
+    var inputValues = mapN(function(x) { x }, inputIndices.length);
 
     var trueOutputSequence = gameppl.feature.getFeatureSetDimensionsFromIndices(outputf, datum.output);
 
     display("Input: " + inputFeatures);
+    display("(Input values: " + inputValues + ")");
     display("True output: " + trueOutputSequence);
 
     display("Output distribution: ")
@@ -118,5 +115,21 @@ map(function(datum) {
 var trainEval = evaluation_modelEncLL(s1model, D_train, s1inc_getDistributionFn(s1model));
 var devEval = evaluation_modelEncLL(s1model, D_dev, s1inc_getDistributionFn(s1model));
 
-display("F\titerations\ttrainLL\tdevLL\ttrainNeg\tdevNeg\ttrainUndef\tdevUndef");
-display(inputFName + "\t" + iterations + "\t" + trainEval.ll + "\t" + devEval.ll + "\t" + trainEval.neg + "\t" + devEval.neg + "\t" + trainEval.undef + "\t" + devEval.undef);
+var s_model = s1inc_getSModel(s1model);
+var meaningFn = s1inc_getMeaningFn(s1model); // utterance x world -> [0, 1]
+
+var devIncEval = gameppl.util.listExpectation(map(function(datum) {
+    var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
+    return enc_modelExpectedIncrement(s_model, undefined, util_objCategorical, scoreFn, datum.output);
+}, D_dev));
+
+var trainIncEval = gameppl.util.listExpectation(map(function(datum) {
+    var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
+    return enc_modelExpectedIncrement(s_model, undefined, util_objCategorical, scoreFn, datum.output);
+}, D_train));
+
+var devIncHeadings = mapN(function(n) { "devInc_" + n }, devIncEval.length);
+var trainIncHeadings = mapN(function(n) { "trainInc_" + n }, trainIncEval.length);
+
+display("F\titerations\ttrainLL\tdevLL\ttrainNeg\tdevNeg\ttrainUndef\tdevUndef\t" + devIncHeadings.join("\t") + "\t" + trainIncHeadings.join("\t"));
+display(inputFName + "\t" + iterations + "\t" + trainEval.ll + "\t" + devEval.ll + "\t" + trainEval.neg + "\t" + devEval.neg + "\t" + trainEval.undef + "\t" + devEval.undef + "\t" + devIncEval.join("\t") + "\t" + trainIncEval.join("\t"));
