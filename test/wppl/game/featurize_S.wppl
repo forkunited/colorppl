@@ -60,7 +60,7 @@ var inputFeatureTypes = [
 
 var inputVector = ["sH_0","sH_1","sH_2","sS_0","sS_1","sS_2","sL_0","sL_1","sL_2", "sTarget"];
 var inputf = gameppl.feature.initFeatureSet("S_in", gamesDir, utteranceFn, actionFn, inputFeatureTypes, inputVector, partition);
-var inputF = gameppl.feature.computeFeatureSet(inputf, gamesDir, gameppl.rgame.getGameUtteranceActionPairs);
+var inputF = gameppl.feature.computeFeatureSet(inputf, gamesDir, colorppl.util.getColorGameUtteranceActionPairs);
 
 var outputFeatureTypes = [
     {
@@ -77,7 +77,7 @@ var outputFeatureTypes = [
 
 var outputVector = ["utok"];
 var outputf = gameppl.feature.initFeatureSet("S_out", gamesDir, utteranceFn, actionFn, outputFeatureTypes, outputVector, partition);
-var outputF = gameppl.feature.computeFeatureSet(outputf, gamesDir, gameppl.rgame.getGameUtteranceActionPairs);
+var outputF = gameppl.feature.computeFeatureSet(outputf, gamesDir, colorppl.util.getColorGameUtteranceActionPairs);
 
 gameppl.feature.saveFeatureSet(inputf, featureVocabDir + "/S_in");
 gameppl.feature.saveFeatureSet(outputf, featureVocabDir + "/S_out");

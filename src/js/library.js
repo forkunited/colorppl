@@ -1,3 +1,5 @@
-module.exports = {
+var util = require("./util");
 
+module.exports = {
+    util : util
 };
