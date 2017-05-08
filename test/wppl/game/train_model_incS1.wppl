@@ -10,10 +10,10 @@ var latentDim = args["latentDim"]*1;
 var splitName = args["splitName"];
 var splitType = args["splitType"];
 var rsaAlpha = 1.0;
-var maxUtteranceLength = 5;
-var approximationBeamSize = 5;
-var languagePruneSize = Infinity;
-var batchSize = 100;
+var maxUtteranceLength = 7;
+var approximationBeamSize = 2;
+var languagePruneSize = 100; //Infinity;
+var batchSize = 10;
 var gradientSamples = 1;
 
 display("Loading feature matrices...");
@@ -90,11 +90,12 @@ var s1model = s1inc_initTrainedModel({
     },
 }, D_train);
 
+display("Finished training... outputting example predictions.");
 
 map(function(datum) {
-    var inputIndices = gameppl.matrix.rowTensorToList(datum.input);
+    var inputValues = gameppl.matrix.rowTensorToList(datum.input);
+    var inputIndices = mapN(function(x) { x }, inputValues.length);
     var inputFeatures = gameppl.feature.getFeatureSetDimensionsFromIndices(inputf, inputIndices);
-    var inputValues = mapN(function(x) { x }, inputIndices.length);
 
     var trueOutputSequence = gameppl.feature.getFeatureSetDimensionsFromIndices(outputf, datum.output);
 
@@ -110,7 +111,7 @@ map(function(datum) {
     }, gameppl.dist.distToArray(s1Dist, 3));
 
     display("\n");
-}, gameppl.util._first(D_dev, 30));
+}, gameppl.util._first(D_dev, 10));
 
 var trainEval = evaluation_modelEncLL(s1model, D_train, s1inc_getDistributionFn(s1model));
 var devEval = evaluation_modelEncLL(s1model, D_dev, s1inc_getDistributionFn(s1model));
@@ -121,12 +122,12 @@ var meaningFn = s1inc_getMeaningFn(s1model); // utterance x world -> [0, 1]
 var devIncEval = gameppl.util.listExpectation(map(function(datum) {
     var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
     return enc_modelExpectedIncrement(s_model, undefined, util_objCategorical, scoreFn, datum.output);
-}, D_dev));
+}, gameppl.util._first(D_dev, 10));
 
 var trainIncEval = gameppl.util.listExpectation(map(function(datum) {
     var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
     return enc_modelExpectedIncrement(s_model, undefined, util_objCategorical, scoreFn, datum.output);
-}, D_train));
+}, gameppl.util._first(D_train, 10));
 
 var devIncHeadings = mapN(function(n) { "devInc_" + n }, devIncEval.length);
 var trainIncHeadings = mapN(function(n) { "trainInc_" + n }, trainIncEval.length);
