@@ -68,7 +68,7 @@ var outputFeatureTypes = [
         parameters : {
             partName : "train",
             annotation : gameppl.rgame.annotations.LEMMA,
-            minCount : 10,
+            minCount : 2,
             toLowerCase : true,
             type : gameppl.feature.enumerableTypes.INDEX
         }
