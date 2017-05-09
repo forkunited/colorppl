@@ -12,8 +12,8 @@ var splitType = args["splitType"];
 var rsaAlpha = 1.0;
 var maxUtteranceLength = 7;
 var approximationBeamSize = 3;
-var languagePruneSize = 100; // Infinity;
-var batchSize = 10;
+var languagePruneSize = Infinity;
+var batchSize = 100;
 var gradientSamples = 1;
 
 display("Loading feature matrices...");
@@ -38,6 +38,8 @@ var worldDimension = gameppl.feature.getFeatureMatrixVocabularySize(inputF);
 var utteranceDimension = gameppl.feature.getFeatureMatrixVocabularySize(outputF);
 var colorDimension = 3;
 var l0inputDimension = utteranceDimension + colorDimension;
+
+display("(Vocabulary size: " + utteranceDimension + ")");
 
 var s1model = s1inc_initTrainedModel({
     maxUtteranceLength : maxUtteranceLength,
