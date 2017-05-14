@@ -1,0 +1,150 @@
+// Run with:
+// webppl test/wppl/game/train_model_incS1.wppl --require ../lib/webppl-nn --require ../gameppl --require . --random-seed 1 --rootDir . --inputF incS1_in --outputF incS1_out --iterations 100 --latentDim 25 --splitName game_34_33_33 --splitType GAME_ROUND
+
+var args = util_parseArgs();
+var rootDir = args["rootDir"];
+var inputFName = args["inputF"];
+var outputFName = args["outputF"];
+var iterations = args["iterations"]*1;
+var latentDim = args["latentDim"]*1;
+var splitName = args["splitName"];
+var splitType = args["splitType"];
+var rsaAlpha = 1.0;
+var maxUtteranceLength = 5;
+var approximationBeamSize = 3;
+var languagePruneSize = Infinity;
+var batchSize = 100;
+var gradientSamples = 1;
+
+display("Loading feature matrices...");
+
+var inputf = gameppl.feature.loadFeatureSet(rootDir + "/examples/features/vocab/" + inputFName);
+var outputf = gameppl.feature.loadFeatureSet(rootDir + "/examples/features/vocab/" + outputFName);
+
+var inputF = gameppl.feature.loadFeatureMatrix(rootDir + "/examples/features/mat/" + inputFName);
+var outputF = gameppl.feature.loadFeatureMatrix(rootDir + "/examples/features/mat/" + outputFName);
+
+display("Constructing data set...");
+
+var D = data_makeFromFeatureMatrices(inputF, outputF, { inputType : DATA_TYPE_VECTOR, outputType : DATA_TYPE_SCALAR_SEQUENCE, maxSequenceLength : maxUtteranceLength });
+var partition = gameppl.partition.load(rootDir + "/examples/games/splits/" + splitName);
+var splitFn = (splitType === "GAME") ? gameppl.data.getDatumGame : (splitType === "ROUND") ? gameppl.data.getDatumRound : gameppl.data.getDatumGameRound
+
+var D_split = gameppl.partition.split(partition, D, splitFn);
+var D_train = D_split['train'];
+var D_dev = D_split['dev'];
+
+var worldDimension = gameppl.feature.getFeatureMatrixVocabularySize(inputF);
+var utteranceDimension = gameppl.feature.getFeatureMatrixVocabularySize(outputF);
+var colorDimension = 3;
+var l0inputDimension = utteranceDimension + colorDimension;
+var s0inputDimension = 3;
+
+display("(Vocabulary size: " + utteranceDimension + ")");
+
+var s0inputFn = function(world) {
+    var targetIndex = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sTargetIndex");
+
+    var H = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sH_" + targetIndex);
+    var S = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sS_" + targetIndex);
+    var L = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sL_" + targetIndex);
+
+    return Vector([H, S, L]);
+};
+
+var s1model = s1seq_initTrainedModel({
+    maxUtteranceLength : maxUtteranceLength,
+    worldDimension : worldDimension,
+    utteranceDimension : utteranceDimension,
+    l0inputDimension : l0inputDimension,
+    s0inputDimension : s0inputDimension,
+    latentDimension : latentDim,
+    beamSize : approximationBeamSize,
+    iterations : iterations,
+    gradientSamples : gradientSamples,
+    batchSize : batchSize,
+    // Hidden is index... indexes into observation
+    l0seqFn: function(utterance, hidden, observation) {
+        var hiddenColor = observation[hidden];
+        var uttWorld = map(function(x) {
+            concat([oneHot(x, utteranceDimension), hiddenColor])
+        }, utterance);
+        return uttWorld;
+    },
+    s0inputFn: s0inputFn,
+    rsaAlpha: rsaAlpha,
+    rsaWorldPriorSize : 3,
+    // Draw a color index
+    rsaWorldPrior: function(observed) {
+        return uniformDraw([0, 1, 2]);
+    },
+    // Hidden is index of target
+    rsaHiddenWorldFn: function(world) {
+        return gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sTargetIndex");
+    },
+    // Observed is array containing a vector for each color
+    rsaObservedWorldFn: function(world) {
+        var H0 = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sH_0");
+        var S0 = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sS_0");
+        var L0 = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sL_0");
+
+        var H1 = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sH_1");
+        var S1 = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sS_1");
+        var L1 = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sL_1");
+
+        var H2 = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sH_2");
+        var S2 = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sS_2");
+        var L2 = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sL_2");
+
+        var hsl0 = Vector([H0, S0, L0]);
+        var hsl1 = Vector([H1, S1, L1]);
+        var hsl2 = Vector([H2, S2, L2]);
+
+        return [hsl0, hsl1, hsl2];
+    },
+}, D_train);
+
+display("Finished training... outputting example predictions.");
+
+map(function(datum) {
+    var inputValues = gameppl.matrix.rowTensorToList(datum.input);
+    var inputIndices = mapN(function(x) { x }, inputValues.length);
+    var inputFeatures = gameppl.feature.getFeatureSetDimensionsFromIndices(inputf, inputIndices);
+
+    var trueOutputSequence = gameppl.feature.getFeatureSetDimensionsFromIndices(outputf, datum.output);
+
+    display("Input: " + inputFeatures);
+    display("(Input values: " + inputValues + ")");
+    display("True output: " + trueOutputSequence);
+
+    display("Output distribution: ")
+    var s1Dist = enc_modelDistribution(s1model, datum.input, s1inc_getDistributionFn(s1model));
+    var s1ReadableDist = map(function(kvPair) {
+        //var indices = map(function(idx) { idx*1 } , kvPair[0].split(","))
+        display(gameppl.feature.getFeatureSetDimensionsFromIndices(outputf, JSON.parse(kvPair[0])) + ": " + kvPair[1]);
+    }, gameppl.dist.distToArray(s1Dist, 3));
+
+    display("\n");
+}, gameppl.util._first(D_dev, 10));
+
+var trainEval = evaluation_modelEncLLFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_train, 100), s1inc_getDistributionFn(s1model)), "train");
+var devEval = evaluation_modelEncLLFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_dev, 100), s1inc_getDistributionFn(s1model)), "dev");
+
+var s0model = s1seq_getS0Model(s1model);
+var meaningFn = s1seq_getMeaningFn(s1model); // utterance x world -> [0, 1]
+
+var devIncEval = gameppl.util.listExpectation(map(function(datum) {
+    var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
+    return enc_modelExpectedIncrement(s0model, s0inputFn(datum.input), util_objCategorical, scoreFn, datum.output);
+}, gameppl.util._first(D_dev, 100)));
+
+var trainIncEval = gameppl.util.listExpectation(map(function(datum) {
+    var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
+    return enc_modelExpectedIncrement(s0model, s0inputFn(datum.input), util_objCategorical, scoreFn, datum.output);
+}, gameppl.util._first(D_train, 100)));
+
+var devIncHeadings = mapN(function(n) { "dev.inc." + n }, devIncEval.length);
+var trainIncHeadings = mapN(function(n) { "train.inc." + n }, trainIncEval.length);
+
+display("F\tseed\titerations\t" + trainEval[0].join("\t") + "\t" + devEval[0].join("\t") + "\t" + devIncHeadings.join("\t") + "\t" + trainIncHeadings.join("\t"));
+display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t") + "\t" + devIncEval.join("\t") + "\t" + trainIncEval.join("\t"));
