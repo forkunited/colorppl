@@ -1,5 +1,5 @@
 // Run with:
-// webppl test/wppl/game/train_model_incS1.wppl --require ../lib/webppl-nn --require ../gameppl --require . --random-seed 1 --rootDir . --inputF incS1_in --outputF incS1_out --iterations 100 --latentDim 25 --splitName game_34_33_33 --splitType GAME_ROUND
+// webppl test/wppl/game/train_model_seqS1.wppl --require ../lib/webppl-nn --require ../gameppl --require . --random-seed 1 --rootDir . --inputF incS1_in --outputF incS1_out --iterations 100 --latentDim 25 --splitName game_34_33_33 --splitType GAME_ROUND
 
 var args = util_parseArgs();
 var rootDir = args["rootDir"];
@@ -12,7 +12,6 @@ var splitType = args["splitType"];
 var rsaAlpha = 1.0;
 var maxUtteranceLength = 5;
 var approximationBeamSize = 3;
-var languagePruneSize = Infinity;
 var batchSize = 100;
 var gradientSamples = 1;
 
@@ -127,8 +126,8 @@ map(function(datum) {
     display("\n");
 }, gameppl.util._first(D_dev, 10));
 
-var trainEval = evaluation_modelEncLLFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_train, 100), s1inc_getDistributionFn(s1model)), "train");
-var devEval = evaluation_modelEncLLFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_dev, 100), s1inc_getDistributionFn(s1model)), "dev");
+var trainEval = evaluation_modelEncLLFlattened(evaluation_modelEncLL(s1model, D_train, s1inc_getDistributionFn(s1model)), "train");
+var devEval = evaluation_modelEncLLFlattened(evaluation_modelEncLL(s1model, D_dev, s1inc_getDistributionFn(s1model)), "dev");
 
 var s0model = s1seq_getS0Model(s1model);
 var meaningFn = s1seq_getMeaningFn(s1model); // utterance x world -> [0, 1]
