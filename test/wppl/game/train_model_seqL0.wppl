@@ -88,7 +88,6 @@ var l0model = l0seq_initTrainedModel({
 
 display("Finished training... outputting example predictions.");
 
-// FIXME
 map(function(datum) {
     var obsValues = gameppl.matrix.rowTensorToList(datum.input.observation);
     var obsIndices = mapN(function(x) { x }, obsValues.length);
