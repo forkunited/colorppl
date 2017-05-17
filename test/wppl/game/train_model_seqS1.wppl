@@ -117,7 +117,7 @@ map(function(datum) {
     display("True output: " + trueOutputSequence);
 
     display("Output distribution: ")
-    var s1Dist = enc_modelDistribution(s1model, datum.input, s1inc_getDistributionFn(s1model));
+    var s1Dist = enc_modelDistribution(s1model, datum.input, s1seq_getDistributionFn(s1model));
     var s1ReadableDist = map(function(kvPair) {
         //var indices = map(function(idx) { idx*1 } , kvPair[0].split(","))
         display(gameppl.feature.getFeatureSetDimensionsFromIndices(outputf, JSON.parse(kvPair[0])) + ": " + kvPair[1]);
@@ -126,8 +126,8 @@ map(function(datum) {
     display("\n");
 }, gameppl.util._first(D_dev, 50));
 
-var trainEval = evaluation_modelEncLLFlattened(evaluation_modelEncLL(s1model, D_train, s1inc_getDistributionFn(s1model)), "train");
-var devEval = evaluation_modelEncLLFlattened(evaluation_modelEncLL(s1model, D_dev, s1inc_getDistributionFn(s1model)), "dev");
+var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_train, s1seq_getDistributionFn(s1model)), "train");
+var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_dev, s1seq_getDistributionFn(s1model)), "dev");
 
 var s0model = s1seq_getS0Model(s1model);
 var meaningFn = s1seq_getMeaningFn(s1model); // utterance x world -> [0, 1]

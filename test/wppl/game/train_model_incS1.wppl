@@ -115,8 +115,8 @@ map(function(datum) {
     display("\n");
 }, gameppl.util._first(D_dev, 10));
 
-var trainEval = evaluation_modelEncLLFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_train, 100), s1inc_getDistributionFn(s1model)), "train");
-var devEval = evaluation_modelEncLLFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_dev, 100), s1inc_getDistributionFn(s1model)), "dev");
+var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_train, 100), s1inc_getDistributionFn(s1model)), "train");
+var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_dev, 100), s1inc_getDistributionFn(s1model)), "dev");
 
 var s_model = s1inc_getSModel(s1model);
 var meaningFn = s1inc_getMeaningFn(s1model); // utterance x world -> [0, 1]

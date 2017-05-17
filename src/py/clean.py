@@ -88,8 +88,8 @@ def make_action_record(record):
     action["roundNum"] = int(record["roundNum"])
     action["time"] = int(float(record["clkTime"]))
     action["condition"] = record["condition"]
-    action["lClicked"] = clickedLisIndex
-    action["sClicked"] = clickedSpIndex
+    action["lClickedIndex"] = clickedLisIndex
+    action["sClickedIndex"] = clickedSpIndex
     action["targetD1Diff"] = int(record["targetD1Diff"])
     action["targetD2Diff"] = int(record["targetD2Diff"])
     action["D1D2Diff"] = int(record["D1D2Diff"])
