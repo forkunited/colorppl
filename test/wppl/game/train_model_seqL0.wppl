@@ -27,7 +27,7 @@ var outputF = gameppl.feature.loadFeatureMatrix(rootDir + "/examples/features/ma
 
 display("Constructing data set...");
 
-var D = data_makeUttObsFromFeatureMatrices(uttF, obsF, outputF, { uttType : DATA_TYPE_VECTOR, obsType : DATA_TYPE_VECTOR, outputType : DATA_TYPE_SCALAR });
+var D = data_makeUttObsFromFeatureMatrices(uttF, obsF, outputF, { uttType : DATA_TYPE_SCALAR_SEQUENCE, obsType : DATA_TYPE_VECTOR, outputType : DATA_TYPE_SCALAR });
 var partition = gameppl.partition.load(rootDir + "/examples/games/splits/" + splitName);
 var splitFn = (splitType === "GAME") ? gameppl.data.getDatumGame : (splitType === "ROUND") ? gameppl.data.getDatumRound : gameppl.data.getDatumGameRound
 
@@ -36,7 +36,7 @@ var D_train = D_split['train'];
 var D_dev = D_split['dev'];
 
 var utteranceDimension = gameppl.feature.getFeatureMatrixVocabularySize(uttF);
-var inputDimension = gameppl.feature.getFeatureMatrixVocabularySize(obsF) + utteranceDimension;
+var inputDimension = 3 + utteranceDimension;
 
 display("(Vocabulary size: " + utteranceDimension + ")");
 
@@ -44,7 +44,6 @@ var l0model = l0seq_initTrainedModel({
     utteranceDimension : utteranceDimension,
     inputDimension : inputDimension,
     latentDimension : latentDim,
-    beamSize : approximationBeamSize,
     iterations : iterations,
     gradientSamples : gradientSamples,
     batchSize : batchSize,
@@ -63,17 +62,17 @@ var l0model = l0seq_initTrainedModel({
     // Observed is array containing a vector for each color
     rsaObservedWorldFn: function(input) {
         var obs = input.observation;
-        var H0 = gameppl.feature.getTensorFeatureRangeStart(obs, inputf, "sH_0");
-        var S0 = gameppl.feature.getTensorFeatureRangeStart(obs, inputf, "sS_0");
-        var L0 = gameppl.feature.getTensorFeatureRangeStart(obs, inputf, "sL_0");
+        var H0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sH_0");
+        var S0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sS_0");
+        var L0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sL_0");
 
-        var H1 = gameppl.feature.getTensorFeatureRangeStart(obs, inputf, "sH_1");
-        var S1 = gameppl.feature.getTensorFeatureRangeStart(obs, inputf, "sS_1");
-        var L1 = gameppl.feature.getTensorFeatureRangeStart(obs, inputf, "sL_1");
+        var H1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sH_1");
+        var S1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sS_1");
+        var L1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sL_1");
 
-        var H2 = gameppl.feature.getTensorFeatureRangeStart(obs, inputf, "sH_2");
-        var S2 = gameppl.feature.getTensorFeatureRangeStart(obs, inputf, "sS_2");
-        var L2 = gameppl.feature.getTensorFeatureRangeStart(obs, inputf, "sL_2");
+        var H2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sH_2");
+        var S2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sS_2");
+        var L2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sL_2");
 
         var hsl0 = Vector([H0, S0, L0]);
         var hsl1 = Vector([H1, S1, L1]);
@@ -111,8 +110,8 @@ map(function(datum) {
 
 }, gameppl.util._first(D_dev, 50));
 
-var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, D_train, l0seq_getDistributionFn(s1model)), "train");
-var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, D_dev, l0seq_getDistributionFn(s1model)), "dev");
+var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, D_train, l0seq_getDistributionFn(l0model)), "train");
+var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, D_dev, l0seq_getDistributionFn(l0model)), "dev");
 
 /** Possibly fix this up later if necessary
 var s0model = s1seq_getS0Model(s1model);
@@ -132,4 +131,4 @@ var devIncHeadings = mapN(function(n) { "dev.inc." + n }, devIncEval.length);
 var trainIncHeadings = mapN(function(n) { "train.inc." + n }, trainIncEval.length); */
 
 display("F\tseed\titerations\t" + trainEval[0].join("\t") + "\t" + devEval[0].join("\t") /*+ "\t" + devIncHeadings.join("\t") + "\t" + trainIncHeadings.join("\t")*/);
-display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t") /* + "\t" + devIncEval.join("\t") + "\t" + trainIncEval.join("\t") */);
+display(obsFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t") /* + "\t" + devIncEval.join("\t") + "\t" + trainIncEval.join("\t") */);
