@@ -1,0 +1,94 @@
+// Run with:
+// webppl test/wppl/game/featurize_L.wppl --require ../gameppl --require . --splitName game_34_33_33 --gamesDir examples/games/json --featureVocabDir examples/features/vocab --featureMatrixDir examples/features/mat
+
+var args = util_parseArgs();
+var gamesDir = args["gamesDir"];
+var featureVocabDir = args["featureVocabDir"];
+var featureMatrixDir = args["featureMatrixDir"];
+var splitName = args["splitName"];
+
+var partition = gameppl.partition.load("examples/games/splits/" + splitName);
+
+var utteranceFn = gameppl.rgame.getPairedUtterancesFn(gameppl.rgame.senders.SPEAKER);
+var actionFn = gameppl.rgame.getPairedActionsFn(gameppl.rgame.senders.SPEAKER)
+
+var obsFeatureTypes = [
+    {
+        name : "sH_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sH_0", partName : "train" }
+    },
+    {
+        name : "sH_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sH_1", partName : "train" }
+    },
+    {
+        name : "sH_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sH_2", partName : "train" }
+    },
+
+    {
+        name : "sS_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sS_0", partName : "train" }
+    },
+    {
+        name : "sS_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sS_1", partName : "train" }
+    },
+    {
+        name : "sS_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sS_2", partName : "train" }
+    },
+    {
+        name : "sL_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sL_0", partName : "train" }
+    },
+    {
+        name : "sL_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sL_1", partName : "train" }
+    },
+    {
+        name : "sL_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "sL_2", partName : "train" }
+    }
+];
+
+var obsVector = ["sH_0","sH_1","sH_2","sS_0","sS_1","sS_2","sL_0","sL_1","sL_2"];
+var obsf = gameppl.feature.initFeatureSet("L_obs", gamesDir, utteranceFn, actionFn, obsFeatureTypes, obsVector, partition);
+var obsF = gameppl.feature.computeFeatureSet(obsf, gamesDir, colorppl.util.getColorGameUtteranceActionPairs);
+
+var outputFeatureTypes = [
+    {
+        name : "lClickedIndex",
+        type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "lClickedIndex" }
+    }
+];
+
+var outputVector = ["lClickedIndex"];
+var outputf = gameppl.feature.initFeatureSet("L_out", gamesDir, utteranceFn, actionFn, outputFeatureTypes, outputVector, partition);
+var outputF = gameppl.feature.computeFeatureSet(outputf, gamesDir, colorppl.util.getColorGameUtteranceActionPairs);
+
+var uttFeatureTypes = [
+    {
+        name : "utok", type : gameppl.feature.types.UTTERANCE_TOKEN_ANNOTATION_ENUMERABLE,
+        parameters : {
+            partName : "train",
+            annotation : gameppl.rgame.annotations.LEMMA,
+            minCount : 2,
+            toLowerCase : true,
+            type : gameppl.feature.enumerableTypes.INDEX
+        }
+    }
+];
+
+var uttVector = ["utok"];
+var uttf = gameppl.feature.initFeatureSet("L_utt", gamesDir, utteranceFn, actionFn, uttFeatureTypes, uttVector, partition);
+var uttF = gameppl.feature.computeFeatureSet(uttf, gamesDir, colorppl.util.getColorGameUtteranceActionPairs);
+
+gameppl.feature.saveFeatureSet(obsf, featureVocabDir + "/L_obs");
+gameppl.feature.saveFeatureSet(outputf, featureVocabDir + "/L_out");
+gameppl.feature.saveFeatureSet(uttf, featureVocabDir + "/L_utt");
+
+gameppl.feature.saveFeatureMatrix(obsF, featureMatrixDir + "/L_obs");
+gameppl.feature.saveFeatureMatrix(outputF, featureMatrixDir + "/L_out");
+gameppl.feature.saveFeatureMatrix(uttF, featureMatrixDir + "/L_utt");
