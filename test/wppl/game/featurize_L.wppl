@@ -14,45 +14,45 @@ var actionFn = gameppl.rgame.getPairedActionsFn(gameppl.rgame.senders.SPEAKER)
 
 var obsFeatureTypes = [
     {
-        name : "sH_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
-        parameters : { prefix : "sH_0", partName : "train" }
+        name : "lH_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "lH_0", partName : "train" }
     },
     {
-        name : "sH_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
-        parameters : { prefix : "sH_1", partName : "train" }
+        name : "lH_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "lH_1", partName : "train" }
     },
     {
-        name : "sH_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
-        parameters : { prefix : "sH_2", partName : "train" }
+        name : "lH_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "lH_2", partName : "train" }
     },
 
     {
-        name : "sS_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
-        parameters : { prefix : "sS_0", partName : "train" }
+        name : "lS_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "lS_0", partName : "train" }
     },
     {
-        name : "sS_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
-        parameters : { prefix : "sS_1", partName : "train" }
+        name : "lS_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "lS_1", partName : "train" }
     },
     {
-        name : "sS_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
-        parameters : { prefix : "sS_2", partName : "train" }
+        name : "lS_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "lS_2", partName : "train" }
     },
     {
-        name : "sL_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
-        parameters : { prefix : "sL_0", partName : "train" }
+        name : "lL_0", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "lL_0", partName : "train" }
     },
     {
-        name : "sL_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
-        parameters : { prefix : "sL_1", partName : "train" }
+        name : "lL_1", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "lL_1", partName : "train" }
     },
     {
-        name : "sL_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
-        parameters : { prefix : "sL_2", partName : "train" }
+        name : "lL_2", type : gameppl.feature.types.ACTION_DIMENSION_SCALAR,
+        parameters : { prefix : "lL_2", partName : "train" }
     }
 ];
 
-var obsVector = ["sH_0","sH_1","sH_2","sS_0","sS_1","sS_2","sL_0","sL_1","sL_2"];
+var obsVector = ["lH_0","lH_1","lH_2","lS_0","lS_1","lS_2","lL_0","lL_1","lL_2"];
 var obsf = gameppl.feature.initFeatureSet("L_obs", gamesDir, utteranceFn, actionFn, obsFeatureTypes, obsVector, partition);
 var obsF = gameppl.feature.computeFeatureSet(obsf, gamesDir, colorppl.util.getColorGameUtteranceActionPairs);
 
