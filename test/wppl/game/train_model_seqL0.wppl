@@ -62,17 +62,17 @@ var l0model = l0seq_initTrainedModel({
     // Observed is array containing a vector for each color
     rsaObservedWorldFn: function(input) {
         var obs = input.observation;
-        var H0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sH_0");
-        var S0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sS_0");
-        var L0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sL_0");
+        var H0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lH_0");
+        var S0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lS_0");
+        var L0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lL_0");
 
-        var H1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sH_1");
-        var S1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sS_1");
-        var L1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sL_1");
+        var H1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lH_1");
+        var S1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lS_1");
+        var L1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lL_1");
 
-        var H2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sH_2");
-        var S2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sS_2");
-        var L2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "sL_2");
+        var H2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lH_2");
+        var S2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lS_2");
+        var L2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lL_2");
 
         var hsl0 = Vector([H0, S0, L0]);
         var hsl1 = Vector([H1, S1, L1]);
@@ -93,7 +93,6 @@ map(function(datum) {
     var obsFeatures = gameppl.feature.getFeatureSetDimensionsFromIndices(obsf, obsIndices);
     var utterance = gameppl.feature.getFeatureSetDimensionsFromIndices(uttf, datum.input.utterance);
     var output = datum.output;
-
 
     display("Observation: " + obsFeatures);
     display("(Observation values: " + obsValues + ")");
