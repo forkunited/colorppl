@@ -51,7 +51,7 @@ var s0inputFn = function(world) {
     return Vector([H, S, L]);
 };
 
-var s1model = s1seq_initTrainedModel({
+var s1model = s1seqSampling_initTrainedModel({
     maxUtteranceLength : maxUtteranceLength,
     worldDimension : worldDimension,
     utteranceDimension : utteranceDimension,
@@ -117,7 +117,7 @@ map(function(datum) {
     display("True output: " + trueOutputSequence);
 
     display("Output distribution: ")
-    var s1Dist = enc_modelDistribution(s1model, datum.input, s1seq_getDistributionFn(s1model));
+    var s1Dist = enc_modelDistribution(s1model, datum.input, s1seqSampling_getDistributionFn(s1model));
     var s1ReadableDist = map(function(kvPair) {
         //var indices = map(function(idx) { idx*1 } , kvPair[0].split(","))
         display(gameppl.feature.getFeatureSetDimensionsFromIndices(outputf, JSON.parse(kvPair[0])) + ": " + kvPair[1]);
@@ -126,11 +126,11 @@ map(function(datum) {
     display("\n");
 }, gameppl.util._first(D_dev, 50));
 
-var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_train, s1seq_getDistributionFn(s1model)), "train");
-var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_dev, s1seq_getDistributionFn(s1model)), "dev");
+var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_train, s1seqSampling_getDistributionFn(s1model)), "train");
+var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_dev, s1seqSampling_getDistributionFn(s1model)), "dev");
 
-var s0model = s1seq_getS0Model(s1model);
-var meaningFn = s1seq_getMeaningFn(s1model); // utterance x world -> [0, 1]
+var s0model = s1seqSampling_getS0Model(s1model);
+var meaningFn = s1seqSampling_getMeaningFn(s1model); // utterance x world -> [0, 1]
 
 var devIncEval = gameppl.util.listExpectation(map(function(datum) {
     var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
