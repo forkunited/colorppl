@@ -14,6 +14,7 @@ var maxUtteranceLength = 5;
 var s0sampleSize = 5;
 var batchSize = 100;
 var gradientSamples = 1;
+var approximationBeamSize = 5;
 
 display("Loading feature matrices...");
 
@@ -62,6 +63,7 @@ var s1model = s1seqSampling_initTrainedModel({
     iterations : iterations,
     gradientSamples : gradientSamples,
     batchSize : batchSize,
+    beamSize : approximationBeamSize,
     // Hidden is index... indexes into observation
     l0seqFn: function(utterance, hidden, observation) {
         var hiddenColor = observation[hidden];
@@ -103,6 +105,16 @@ var s1model = s1seqSampling_initTrainedModel({
     },
 }, D_train);
 
+display("Training language model for incremental evaluation");
+var s_model = s_initTrainedModel({
+    maxUtteranceLength : maxUtteranceLength,
+    utteranceDimension : utteranceDimension,
+    latentDimension : latentDim,
+    beamSize : approximationBeamSize,
+    iterations : iterations,
+    gradientSamples : gradientSamples,
+    batchSize : batchSize });
+
 display("Finished training... outputting example predictions.");
 
 map(function(datum) {
@@ -129,21 +141,10 @@ map(function(datum) {
 var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_train, s1seqSampling_getDistributionFn(s1model)), "train");
 var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_dev, s1seqSampling_getDistributionFn(s1model)), "dev");
 
-var s0model = s1seqSampling_getS0Model(s1model);
 var meaningFn = s1seqSampling_getMeaningFn(s1model); // utterance x world -> [0, 1]
 
-var devIncEval = gameppl.util.listExpectation(map(function(datum) {
-    var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
-    return enc_modelExpectedIncrement(s0model, s0inputFn(datum.input), util_objCategorical, scoreFn, datum.output);
-}, gameppl.util._first(D_dev, 100)));
+var devIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(meaningFn, gameppl.util._first(D_dev, 100), s_model), "dev");
+var trainIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(meaningFn, gameppl.util._first(D_train, 100), s_model), "train");
 
-var trainIncEval = gameppl.util.listExpectation(map(function(datum) {
-    var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
-    return enc_modelExpectedIncrement(s0model, s0inputFn(datum.input), util_objCategorical, scoreFn, datum.output);
-}, gameppl.util._first(D_train, 100)));
-
-var devIncHeadings = mapN(function(n) { "dev.inc." + n }, devIncEval.length);
-var trainIncHeadings = mapN(function(n) { "train.inc." + n }, trainIncEval.length);
-
-display("F\tseed\titerations\t" + trainEval[0].join("\t") + "\t" + devEval[0].join("\t") + "\t" + devIncHeadings.join("\t") + "\t" + trainIncHeadings.join("\t"));
-display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t") + "\t" + devIncEval.join("\t") + "\t" + trainIncEval.join("\t"));
+display("F\tseed\titerations\t" + trainEval[0].join("\t") + "\t" + devEval[0].join("\t") + "\t" + trainIncEval[0].join("\t") + "\t" + devIncEval[0].join("\t"));
+display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t") + "\t" + trainIncEval[1].join("\t") + "\t" + devIncEval[1].join("\t"));
