@@ -113,7 +113,7 @@ var s_model = s_initTrainedModel({
     beamSize : approximationBeamSize,
     iterations : iterations,
     gradientSamples : gradientSamples,
-    batchSize : batchSize });
+    batchSize : batchSize }, D_train);
 
 display("Finished training... outputting example predictions.");
 
@@ -138,13 +138,18 @@ map(function(datum) {
     display("\n");
 }, gameppl.util._first(D_dev, 50));
 
+display ("Evaluating ll...");
+
 var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_train, s1seqSampling_getDistributionFn(s1model)), "train");
 var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_dev, s1seqSampling_getDistributionFn(s1model)), "dev");
 
-var meaningFn = s1seqSampling_getMeaningFn(s1model); // utterance x world -> [0, 1]
+display("Evaluating incremental...");
 
-var devIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(meaningFn, gameppl.util._first(D_dev, 100), s_model), "dev");
-var trainIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(meaningFn, gameppl.util._first(D_train, 100), s_model), "train");
+var meaningFn = s1seqSampling_getMeaningFn(s1model); // utterance x world -> [0, 1]
+var makeScoreFn = function(datum) { return function (utterance) { return meaningFn(utterance, datum.input); } };
+
+var devIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_dev, 100), s_model), "dev");
+var trainIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_train, 100), s_model), "train");
 
 display("F\tseed\titerations\t" + trainEval[0].join("\t") + "\t" + devEval[0].join("\t") + "\t" + trainIncEval[0].join("\t") + "\t" + devIncEval[0].join("\t"));
 display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t") + "\t" + trainIncEval[1].join("\t") + "\t" + devIncEval[1].join("\t"));
