@@ -85,6 +85,33 @@ var l0model = l0seq_initTrainedModel({
     }
 }, D_train);
 
+display("Training language model for incremental evaluation");
+var s0inputFn = function(observation, hidden) { return observation[hidden]; };
+
+var makeS0ContextDatum = function(datum) {
+    var new_d = mapObject(function (key, value) {
+        if (key === 'input')
+            return { observation : rsaObservedWorldFn(value), hidden : datum.output }
+        else if (key == 'output')
+            return datum.input.utterance
+        else
+            return value
+    }, datum);
+    return new_d;
+};
+
+var D_S0_train = map(makeS0ContextDatum, D_train);
+var D_S0_dev = map(makeS0ContextDatum, D_dev);
+
+var s_model = s_initTrainedModel({
+    maxUtteranceLength : maxUtteranceLength,
+    utteranceDimension : utteranceDimension,
+    latentDimension : latentDim,
+    beamSize : approximationBeamSize,
+    iterations : iterations,
+    gradientSamples : gradientSamples,
+    batchSize : batchSize }, D_S0_train);
+
 display("Finished training... outputting example predictions.");
 
 map(function(datum) {
@@ -107,27 +134,42 @@ map(function(datum) {
     }, gameppl.dist.distToArray(l0Dist, 3));
     display("\n");
 
-}, gameppl.util._first(D_dev, 50));
+}, gameppl.util._first(D_dev, 2));
 
-var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, D_train, l0seq_getDistributionFn(l0model)), "train");
-var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, D_dev, l0seq_getDistributionFn(l0model)), "dev");
+display("Evaluating L0 accuracy");
 
-/** Possibly fix this up later if necessary
-var s0model = s1seq_getS0Model(s1model);
-var meaningFn = s1seq_getMeaningFn(s1model); // utterance x world -> [0, 1]
+var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, gameppl.util._first(D_train, 2), l0seq_getDistributionFn(l0model)), "train");
+var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, gameppl.util._first(D_train, 2), l0seq_getDistributionFn(l0model)), "dev");
 
-var devIncEval = gameppl.util.listExpectation(map(function(datum) {
-    var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
-    return enc_modelExpectedIncrement(s0model, s0inputFn(datum.input), util_objCategorical, scoreFn, datum.output);
-}, gameppl.util._first(D_dev, 100)));
+display("Evaluating L1 accuracy...");
 
-var trainIncEval = gameppl.util.listExpectation(map(function(datum) {
-    var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
-    return enc_modelExpectedIncrement(s0model, s0inputFn(datum.input), util_objCategorical, scoreFn, datum.output);
-}, gameppl.util._first(D_train, 100)));
+var l1dist = l0seq_getL1DistributionFn(l0model, {
+    s0inputFn: s0inputFn,
+    alpha: rsaAlpha,
+    s0sampleSize: 5,
+    s0inputDimension: 3,
+    iterations: iterations,
+    gradientSamples: gradientSamples,
+    batchSize: batchSize,
+    approximationBeamSize: 5,
+    maxUtteranceLength: maxUtteranceLength
+});
 
-var devIncHeadings = mapN(function(n) { "dev.inc." + n }, devIncEval.length);
-var trainIncHeadings = mapN(function(n) { "train.inc." + n }, trainIncEval.length); */
+var trainL1Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, gameppl.util._first(D_train, 2), l1dist), "train");
+var devL1Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, gameppl.util._first(D_dev, 2), l1dist), "dev");
 
-display("F\tseed\titerations\t" + trainEval[0].join("\t") + "\t" + devEval[0].join("\t") /*+ "\t" + devIncHeadings.join("\t") + "\t" + trainIncHeadings.join("\t")*/);
-display(obsFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t") /* + "\t" + devIncEval.join("\t") + "\t" + trainIncEval.join("\t") */);
+display("Evaluating incremental...");
+
+var meaningFn = l0seqSampling_getMeaningFn(l0model); // utterance x hidden x observation -> [0, 1]
+var makeScoreFn = function(datum) {
+    return function (utterance) {
+        return meaningFn(utterance, datum.input.hidden, datum.input.observation);
+    };
+};
+var devIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_S0_dev, 2), s_model), "dev");
+var trainIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_S0_train, 2), s_model), "train");
+
+var keysValues = evaluation_flattenedKeyValueStrings([trainEval, devEval, trainL1Eval, devL1Eval, trainIncEval, devIncEval]);
+
+display("F\tseed\titerations\t" + keysValues[0]);
+display(obsFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + keysValues[1]);
