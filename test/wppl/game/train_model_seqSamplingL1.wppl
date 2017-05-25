@@ -1,0 +1,157 @@
+// webppl test/wppl/game/train_model_seqL1.wppl --require ../lib/webppl-nn --require ../gameppl --require . --random-seed 1 --rootDir . --uttF L_utt --obsF L_obs --outputF L_out --iterations 100 --latentDim 50 --splitName game_34_33_33 --splitType GAME_ROUND
+
+var args = util_parseArgs();
+var rootDir = args["rootDir"];
+var uttFName = args["uttF"];
+var obsFName = args["obsF"]
+var outputFName = args["outputF"];
+var iterations = args["iterations"]*1;
+var latentDim = args["latentDim"]*1;
+var splitName = args["splitName"];
+var splitType = args["splitType"];
+var rsaAlpha = 1.0;
+var maxUtteranceLength = 5;
+var s0sampleSize = 5;
+var batchSize = 100;
+var gradientSamples = 1;
+var approximationBeamSize = 5;
+
+display("Loading feature matrices...");
+
+var uttf = gameppl.feature.loadFeatureSet(rootDir + "/examples/features/vocab/" + uttFName);
+var obsf = gameppl.feature.loadFeatureSet(rootDir + "/examples/features/vocab/" + obsFName);
+var outputf = gameppl.feature.loadFeatureSet(rootDir + "/examples/features/vocab/" + outputFName);
+
+var uttF = gameppl.feature.loadFeatureMatrix(rootDir + "/examples/features/mat/" + uttFName);
+var obsF = gameppl.feature.loadFeatureMatrix(rootDir + "/examples/features/mat/" + obsFName);
+var outputF = gameppl.feature.loadFeatureMatrix(rootDir + "/examples/features/mat/" + outputFName);
+
+display("Constructing data set...");
+
+var D = data_makeUttObsFromFeatureMatrices(uttF, obsF, outputF, { uttType : DATA_TYPE_SCALAR_SEQUENCE, obsType : DATA_TYPE_VECTOR, outputType : DATA_TYPE_SCALAR });
+var partition = gameppl.partition.load(rootDir + "/examples/games/splits/" + splitName);
+var splitFn = (splitType === "GAME") ? gameppl.data.getDatumGame : (splitType === "ROUND") ? gameppl.data.getDatumRound : gameppl.data.getDatumGameRound
+
+var D_split = gameppl.partition.split(partition, D, splitFn);
+var D_train = D_split['train'];
+var D_dev = D_split['dev'];
+
+var utteranceDimension = gameppl.feature.getFeatureMatrixVocabularySize(uttF);
+var s0inputDimension = 3;
+var meaningInputDimension = 3 + utteranceDimension;
+
+display("(Vocabulary size: " + utteranceDimension + ")");
+
+var rsaObservedWorldFn = function(input) {
+    var obs = input.observation;
+    var H0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lH_0");
+    var S0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lS_0");
+    var L0 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lL_0");
+
+    var H1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lH_1");
+    var S1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lS_1");
+    var L1 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lL_1");
+
+    var H2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lH_2");
+    var S2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lS_2");
+    var L2 = gameppl.feature.getTensorFeatureRangeStart(obs, obsf, "lL_2");
+
+    var hsl0 = Vector([H0, S0, L0]);
+    var hsl1 = Vector([H1, S1, L1]);
+    var hsl2 = Vector([H2, S2, L2]);
+
+    return [hsl0, hsl1, hsl2];
+};
+
+var s1model = s1seqSampling_initTrainedModel({
+    maxUtteranceLength : maxUtteranceLength,
+    worldDimension : worldDimension,
+    utteranceDimension : utteranceDimension,
+    meaningInputDimension : meaningInputDimension,
+    s0inputDimension : s0inputDimension,
+    latentDimension : latentDim,
+    s0sampleSize : s0sampleSize,
+    iterations : iterations,
+    gradientSamples : gradientSamples,
+    batchSize : batchSize,
+    beamSize : approximationBeamSize,
+    // Hidden is index... indexes into observation
+    meaningSeqFn: function(utterance, hidden, observation) {
+        var hiddenColor = observation[hidden];
+        var uttWorld = map(function(x) {
+            concat([oneHot(x, utteranceDimension), hiddenColor])
+        }, utterance);
+        return uttWorld;
+    },
+    s0inputFn: function(observation, hidden) { return observation[hidden]; },
+    rsaAlpha: rsaAlpha,
+    rsaObservedWorldFn: rsaObservedWorldFn,
+    rsaUtteranceFn: function(input) {
+        return input.utterance;
+    },
+    // Draw a color index
+    rsaWorldPrior: function(observed) {
+        return uniformDraw([0, 1, 2]);
+    }
+}, D_train);
+
+display("Training language model for incremental evaluation");
+var s_model = s_initTrainedModel({
+    maxUtteranceLength : maxUtteranceLength,
+    utteranceDimension : utteranceDimension,
+    latentDimension : latentDim,
+    beamSize : approximationBeamSize,
+    iterations : iterations,
+    gradientSamples : gradientSamples,
+    batchSize : batchSize }, D_train);
+
+display("Finished training... outputting example predictions.");
+
+map(function(datum) {
+    var obsValues = gameppl.matrix.rowTensorToList(datum.input.observation);
+    var obsIndices = mapN(function(x) { x }, obsValues.length);
+    var obsFeatures = gameppl.feature.getFeatureSetDimensionsFromIndices(obsf, obsIndices);
+    var utterance = gameppl.feature.getFeatureSetDimensionsFromIndices(uttf, datum.input.utterance);
+    var output = datum.output;
+
+    display("Observation: " + obsFeatures);
+    display("(Observation values: " + obsValues + ")");
+    display("Utterance: " + utterance);
+    display("True output: " + output);
+
+    display("Output distribution: ");
+    var l1Dist = enc_modelDistribution(l1model, datum.input, l1samplingSeq_getDistributionFn(l1model));
+    map(function(kvPair) {
+        //var indices = map(function(idx) { idx*1 } , kvPair[0].split(","))
+        display(kvPair[0] + ": " + kvPair[1]);
+    }, gameppl.dist.distToArray(l1Dist, 3));
+    display("\n");
+}, gameppl.util._first(D_dev, 50));
+
+display("Evaluating accuracy...");
+
+var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, D_train, l1samplingSeq_getDistributionFn(l1model)), "train");
+var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, D_dev, l1samplingSeq_getDistributionFn(l1model)), "dev");
+
+display("Evaluating l0 accuracy...");
+
+var l0distFn = l1seqSampling_getL0DistributionFn(l1model);
+var trainL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, D_train, l0distFn), "train");
+var devL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, D_dev, l0distFn), "dev");
+
+display("Evaluating incremental...");
+
+var meaningFn = s1seqSampling_getMeaningFn(l1model); // utterance x hidden x observation -> [0, 1]
+var makeScoreFn = function(datum) {
+    return function (utterance) {
+        var observed = rsaObservedWorldFn(datum.input);
+        return meaningFn(utterance, observed[datum.output], observed);
+    };
+};
+var devIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_dev, 100), s_model), "dev");
+var trainIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_train, 100), s_model), "train");
+
+var keysValues = evaluation_flattenedKeyValueStrings([trainEval, devEval, trainL0Eval, devL0Eval, trainIncEval, devIncEval]);
+
+display("F\tseed\titerations\t" + keysValues[0]);
+display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + keysValues[1]);
