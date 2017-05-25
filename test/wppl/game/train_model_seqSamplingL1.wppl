@@ -12,7 +12,7 @@ var splitType = args["splitType"];
 var rsaAlpha = 1.0;
 var maxUtteranceLength = 5;
 var s0sampleSize = 5;
-var batchSize = 100;
+var batchSize = 10; //100;
 var gradientSamples = 1;
 var approximationBeamSize = 5;
 
@@ -63,9 +63,22 @@ var rsaObservedWorldFn = function(input) {
     return [hsl0, hsl1, hsl2];
 };
 
-var s1model = s1seqSampling_initTrainedModel({
+var s0inputFn = function(observation, hidden) { return observation[hidden]; };
+
+var makeS0ContextDatum = function(datum) {
+    var new_d = mapObject(function (key, value) {
+        if (key === 'input')
+            return { observation : rsaObservedWorldFn(value), hidden : datum.output }
+        else if (key == 'output')
+            return datum.input.utterance
+        else
+            return value
+        }, datum);
+    return new_d;
+};
+
+var l1model = l1seqSampling_initTrainedModel({
     maxUtteranceLength : maxUtteranceLength,
-    worldDimension : worldDimension,
     utteranceDimension : utteranceDimension,
     meaningInputDimension : meaningInputDimension,
     s0inputDimension : s0inputDimension,
@@ -83,7 +96,7 @@ var s1model = s1seqSampling_initTrainedModel({
         }, utterance);
         return uttWorld;
     },
-    s0inputFn: function(observation, hidden) { return observation[hidden]; },
+    s0inputFn: s0inputFn,
     rsaAlpha: rsaAlpha,
     rsaObservedWorldFn: rsaObservedWorldFn,
     rsaUtteranceFn: function(input) {
@@ -96,6 +109,9 @@ var s1model = s1seqSampling_initTrainedModel({
 }, D_train);
 
 display("Training language model for incremental evaluation");
+var D_S0_train = map(makeS0ContextDatum, D_train);
+var D_S0_dev = map(makeS0ContextDatum, D_dev);
+
 var s_model = s_initTrainedModel({
     maxUtteranceLength : maxUtteranceLength,
     utteranceDimension : utteranceDimension,
@@ -103,7 +119,7 @@ var s_model = s_initTrainedModel({
     beamSize : approximationBeamSize,
     iterations : iterations,
     gradientSamples : gradientSamples,
-    batchSize : batchSize }, D_train);
+    batchSize : batchSize }, D_S0_train);
 
 display("Finished training... outputting example predictions.");
 
@@ -120,7 +136,7 @@ map(function(datum) {
     display("True output: " + output);
 
     display("Output distribution: ");
-    var l1Dist = enc_modelDistribution(l1model, datum.input, l1samplingSeq_getDistributionFn(l1model));
+    var l1Dist = enc_modelDistribution(l1model, datum.input, l1seqSampling_getDistributionFn(l1model));
     map(function(kvPair) {
         //var indices = map(function(idx) { idx*1 } , kvPair[0].split(","))
         display(kvPair[0] + ": " + kvPair[1]);
@@ -130,28 +146,27 @@ map(function(datum) {
 
 display("Evaluating accuracy...");
 
-var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, D_train, l1samplingSeq_getDistributionFn(l1model)), "train");
-var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, D_dev, l1samplingSeq_getDistributionFn(l1model)), "dev");
+var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_train, 2000), l1seqSampling_getDistributionFn(l1model)), "train");
+var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_dev, 2000), l1seqSampling_getDistributionFn(l1model)), "dev");
 
 display("Evaluating l0 accuracy...");
 
 var l0distFn = l1seqSampling_getL0DistributionFn(l1model);
-var trainL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, D_train, l0distFn), "train");
-var devL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, D_dev, l0distFn), "dev");
+var trainL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_train,2000), l0distFn), "train");
+var devL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_dev, 2000), l0distFn), "dev");
 
 display("Evaluating incremental...");
 
-var meaningFn = s1seqSampling_getMeaningFn(l1model); // utterance x hidden x observation -> [0, 1]
+var meaningFn = l1seqSampling_getMeaningFn(l1model); // utterance x hidden x observation -> [0, 1]
 var makeScoreFn = function(datum) {
     return function (utterance) {
-        var observed = rsaObservedWorldFn(datum.input);
-        return meaningFn(utterance, observed[datum.output], observed);
+        return meaningFn(utterance, datum.input.hidden, datum.input.observation);
     };
 };
-var devIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_dev, 100), s_model), "dev");
-var trainIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_train, 100), s_model), "train");
+var devIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_S0_dev, 100), s_model), "dev");
+var trainIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_S0_train, 100), s_model), "train");
 
 var keysValues = evaluation_flattenedKeyValueStrings([trainEval, devEval, trainL0Eval, devL0Eval, trainIncEval, devIncEval]);
 
 display("F\tseed\titerations\t" + keysValues[0]);
-display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + keysValues[1]);
+display(obsFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + keysValues[1]);
