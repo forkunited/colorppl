@@ -1,5 +1,5 @@
 // Run with:
-// webppl test/wppl/game/train_model_incS1.wppl --require ../lib/webppl-nn --require ../gameppl --require . --random-seed 1 --rootDir . --inputF incS1_in --outputF incS1_out --iterations 100 --latentDim 25 --splitName game_34_33_33 --splitType GAME_ROUND
+// webppl test/wppl/game/train_model_incS1.wppl --require ../lib/webppl-nn --require ../gameppl --require . --random-seed 1 --rootDir . --inputF incS1_in --outputF incS1_out --iterations 100 --latentDim 25 --splitName game_34_33_33 --splitType GAME_ROUND --sIterations 100
 
 var args = util_parseArgs();
 var rootDir = args["rootDir"];
@@ -9,6 +9,7 @@ var iterations = args["iterations"]*1;
 var latentDim = args["latentDim"]*1;
 var splitName = args["splitName"];
 var splitType = args["splitType"];
+var sIterations = args["sIterations"]*1;
 var rsaAlpha = 1.0;
 var maxUtteranceLength = 5;
 var approximationBeamSize = 3;
@@ -50,6 +51,7 @@ var s1model = s1inc_initTrainedModel({
     beamSize : approximationBeamSize,
     languagePruneSize : languagePruneSize,
     iterations : iterations,
+    sIterations : sIterations,
     gradientSamples : gradientSamples,
     batchSize : batchSize,
     // Hidden is index... indexes into observation
@@ -94,26 +96,7 @@ var s1model = s1inc_initTrainedModel({
 
 display("Finished training... outputting example predictions.");
 
-map(function(datum) {
-    var inputValues = gameppl.matrix.rowTensorToList(datum.input);
-    var inputIndices = mapN(function(x) { x }, inputValues.length);
-    var inputFeatures = gameppl.feature.getFeatureSetDimensionsFromIndices(inputf, inputIndices);
-
-    var trueOutputSequence = gameppl.feature.getFeatureSetDimensionsFromIndices(outputf, datum.output);
-
-    display("Input: " + inputFeatures);
-    display("(Input values: " + inputValues + ")");
-    display("True output: " + trueOutputSequence);
-
-    display("Output distribution: ")
-    var s1Dist = enc_modelDistribution(s1model, datum.input, s1inc_getDistributionFn(s1model));
-    var s1ReadableDist = map(function(kvPair) {
-        //var indices = map(function(idx) { idx*1 } , kvPair[0].split(","))
-        display(gameppl.feature.getFeatureSetDimensionsFromIndices(outputf, JSON.parse(kvPair[0])) + ": " + kvPair[1]);
-    }, gameppl.dist.distToArray(s1Dist, 3));
-
-    display("\n");
-}, gameppl.util._first(D_dev, 10));
+color_data_displayExamplesS(D_dev, 20, s1model, s1inc_getDistributionFn(s1model));
 
 var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_train, 100), s1inc_getDistributionFn(s1model)), "train");
 var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_dev, 100), s1inc_getDistributionFn(s1model)), "dev");

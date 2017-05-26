@@ -1,4 +1,4 @@
-// webppl test/wppl/game/train_model_seqL1.wppl --require ../lib/webppl-nn --require ../gameppl --require . --random-seed 1 --rootDir . --uttF L_utt --obsF L_obs --outputF L_out --iterations 100 --latentDim 50 --splitName game_34_33_33 --splitType GAME_ROUND
+// webppl test/wppl/game/train_model_seqL1.wppl --require ../lib/webppl-nn --require ../gameppl --require . --random-seed 1 --rootDir . --uttF L_utt --obsF L_obs --outputF L_out --iterations 100 --latentDim 50 --splitName game_34_33_33 --splitType GAME_ROUND --sIterations 100
 
 var args = util_parseArgs();
 var rootDir = args["rootDir"];
@@ -6,6 +6,7 @@ var uttFName = args["uttF"];
 var obsFName = args["obsF"]
 var outputFName = args["outputF"];
 var iterations = args["iterations"]*1;
+var sIterations = args["sIterations"]*1;
 var latentDim = args["latentDim"]*1;
 var splitName = args["splitName"];
 var splitType = args["splitType"];
@@ -85,6 +86,7 @@ var l1model = l1seqSampling_initTrainedModel({
     latentDimension : latentDim,
     s0sampleSize : s0sampleSize,
     iterations : iterations,
+    sIterations : sIterations,
     gradientSamples : gradientSamples,
     batchSize : batchSize,
     beamSize : approximationBeamSize,
@@ -117,43 +119,24 @@ var s_model = s_initTrainedModel({
     utteranceDimension : utteranceDimension,
     latentDimension : latentDim,
     beamSize : approximationBeamSize,
-    iterations : iterations,
+    iterations : sIterations,
     gradientSamples : gradientSamples,
     batchSize : batchSize }, D_S0_train);
 
 display("Finished training... outputting example predictions.");
 
-map(function(datum) {
-    var obsValues = gameppl.matrix.rowTensorToList(datum.input.observation);
-    var obsIndices = mapN(function(x) { x }, obsValues.length);
-    var obsFeatures = gameppl.feature.getFeatureSetDimensionsFromIndices(obsf, obsIndices);
-    var utterance = gameppl.feature.getFeatureSetDimensionsFromIndices(uttf, datum.input.utterance);
-    var output = datum.output;
-
-    display("Observation: " + obsFeatures);
-    display("(Observation values: " + obsValues + ")");
-    display("Utterance: " + utterance);
-    display("True output: " + output);
-
-    display("Output distribution: ");
-    var l1Dist = enc_modelDistribution(l1model, datum.input, l1seqSampling_getDistributionFn(l1model));
-    map(function(kvPair) {
-        //var indices = map(function(idx) { idx*1 } , kvPair[0].split(","))
-        display(kvPair[0] + ": " + kvPair[1]);
-    }, gameppl.dist.distToArray(l1Dist, 3));
-    display("\n");
-}, gameppl.util._first(D_dev, 50));
+color_data_displayExamplesL(D_dev, 20, l1model, l1seqSampling_getDistributionFn(l1model));
 
 display("Evaluating accuracy...");
 
-var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_train, 2000), l1seqSampling_getDistributionFn(l1model)), "train");
-var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_dev, 2000), l1seqSampling_getDistributionFn(l1model)), "dev");
+var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_train, 2000), l1seqSampling_getDistributionFn(l1model)), "l1.train");
+var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_dev, 2000), l1seqSampling_getDistributionFn(l1model)), "l1.dev");
 
 display("Evaluating l0 accuracy...");
 
 var l0distFn = l1seqSampling_getL0DistributionFn(l1model);
-var trainL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_train,2000), l0distFn), "train");
-var devL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_dev, 2000), l0distFn), "dev");
+var trainL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_train,2000), l0distFn), "l0.train");
+var devL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l1model, gameppl.util._first(D_dev, 2000), l0distFn), "l0.dev");
 
 display("Evaluating incremental...");
 
