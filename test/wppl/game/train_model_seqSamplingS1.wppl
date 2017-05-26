@@ -13,7 +13,7 @@ var sIterations = args["sIterations"]*1;
 var rsaAlpha = 1.0;
 var maxUtteranceLength = 5;
 var s0sampleSize = 5;
-var batchSize = 100;
+var batchSize = 10;
 var gradientSamples = 1;
 var approximationBeamSize = 5;
 
