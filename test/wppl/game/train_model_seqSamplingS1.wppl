@@ -10,6 +10,10 @@ var latentDim = args["latentDim"]*1;
 var splitName = args["splitName"];
 var splitType = args["splitType"];
 var sIterations = args["sIterations"]*1;
+var evalSamples = args["evalSamples"]*1;
+var incSamples = args["incSamples"]*1;
+var qualSamples = args["qualSamples"]*1;
+
 var rsaAlpha = 1.0;
 var maxUtteranceLength = 5;
 var s0sampleSize = 5;
@@ -27,7 +31,7 @@ var outputF = gameppl.feature.loadFeatureMatrix(rootDir + "/examples/features/ma
 
 display("Constructing data set...");
 
-var D = data_makeFromFeatureMatrices(inputF, outputF, { inputType : DATA_TYPE_VECTOR, outputType : DATA_TYPE_SCALAR_SEQUENCE, maxSequenceLength : maxUtteranceLength });
+var D = data_makeFromFeatureMatrices(inputF, outputF, { inputType : DATA_TYPE_VECTOR, outputType : DATA_TYPE_SCALAR_SEQUENCE, maxSequenceLength : maxUtteranceLength, maxOutputSequenceLength: maxUtteranceLength });
 var partition = gameppl.partition.load(rootDir + "/examples/games/splits/" + splitName);
 var splitFn = (splitType === "GAME") ? gameppl.data.getDatumGame : (splitType === "ROUND") ? gameppl.data.getDatumRound : gameppl.data.getDatumGameRound
 
@@ -119,20 +123,31 @@ var s_model = s_initTrainedModel({
 
 display("Finished training... outputting example predictions.");
 
-color_data_displayExamplesS(D_dev, 20, s1model, s1seqSampling_getDistributionFn(s1model));
+color_data_displayExamplesS(D_dev, qualSamples, s1model, s1seqSampling_getDistributionFn(s1model));
 
 display ("Evaluating ll...");
 
-var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_train, s1seqSampling_getDistributionFn(s1model), true), "train");
-var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, D_dev, s1seqSampling_getDistributionFn(s1model), true), "dev");
+var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_train, evalSamples), s1seqSampling_getDistributionFn(s1model), true), "train");
+var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_dev, evalSamples), s1seqSampling_getDistributionFn(s1model), true), "dev");
+
+display("Evaluating l0...");
+
+var loutputFn = function(datum) { return gameppl.feature.getTensorFeatureRangeStart(datum.input, inputf, "sTargetIndex"); };
+var trainL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracyGrungyData(s1model, gameppl.util._first(D_train, evalSamples), s1seqSampling_getL0DistributionFn, loutputFn), "l0.train");
+var devL0Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracyGrungyData(s1model, gameppl.util._first(D_dev, evalSamples), s1seqSampling_getL0DistributionFn, loutputFn), "l0.dev");
+
+display("Evaluating l1...");
+var trainL1Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracyGrungyData(s1model, gameppl.util._first(D_train, evalSamples), s1seqSampling_getL1DistributionFn, loutputFn), "l1.train");
+var devL1Eval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracyGrungyData(s1model, gameppl.util._first(D_dev, evalSamples), s1seqSampling_getL1DistributionFn, loutputFn), "l1.dev");
 
 display("Evaluating incremental...");
 
 var meaningFn = s1seqSampling_getMeaningFn(s1model); // utterance x world -> [0, 1]
 var makeScoreFn = function(datum) { return function (utterance) { return meaningFn(utterance, datum.input); } };
+var devIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_dev, incSamples), s_model), "dev");
+var trainIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_train, incSamples), s_model), "train");
 
-var devIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_dev, 100), s_model), "dev");
-var trainIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpectedIncrement(makeScoreFn, gameppl.util._first(D_train, 100), s_model), "train");
+var keysValues = evaluation_flattenedKeyValueStrings([trainEval, devEval, trainL0Eval, devL0Eval, trainL1Eval, devL1Eval, trainIncEval, devIncEval]);
 
-display("F\tseed\titerations\t" + trainEval[0].join("\t") + "\t" + devEval[0].join("\t") + "\t" + trainIncEval[0].join("\t") + "\t" + devIncEval[0].join("\t"));
-display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t") + "\t" + trainIncEval[1].join("\t") + "\t" + devIncEval[1].join("\t"));
+display("F\tseed\titerations\t" + keysValues[0]);
+display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + keysValues[1]);

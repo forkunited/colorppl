@@ -10,6 +10,9 @@ var latentDim = args["latentDim"]*1;
 var splitName = args["splitName"];
 var splitType = args["splitType"];
 var sIterations = args["sIterations"]*1;
+var evalSamples = args["evalSamples"]*1;
+var incSamples = args["incSamples"]*1;
+var qualSamples = args["qualSamples"]*1;
 var rsaAlpha = 1.0;
 var maxUtteranceLength = 5;
 var approximationBeamSize = 3;
@@ -27,7 +30,7 @@ var outputF = gameppl.feature.loadFeatureMatrix(rootDir + "/examples/features/ma
 
 display("Constructing data set...");
 
-var D = data_makeFromFeatureMatrices(inputF, outputF, { inputType : DATA_TYPE_VECTOR, outputType : DATA_TYPE_SCALAR_SEQUENCE, maxSequenceLength : maxUtteranceLength });
+var D = data_makeFromFeatureMatrices(inputF, outputF, { inputType : DATA_TYPE_VECTOR, outputType : DATA_TYPE_SCALAR_SEQUENCE, maxOutputSequenceLength : maxUtteranceLength });
 var partition = gameppl.partition.load(rootDir + "/examples/games/splits/" + splitName);
 var splitFn = (splitType === "GAME") ? gameppl.data.getDatumGame : (splitType === "ROUND") ? gameppl.data.getDatumRound : gameppl.data.getDatumGameRound
 
@@ -96,10 +99,10 @@ var s1model = s1inc_initTrainedModel({
 
 display("Finished training... outputting example predictions.");
 
-color_data_displayExamplesS(D_dev, 20, s1model, s1inc_getDistributionFn(s1model));
+color_data_displayExamplesS(D_dev, qualSamples, s1model, s1inc_getDistributionFn(s1model));
 
-var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_train, 100), s1inc_getDistributionFn(s1model)), "train");
-var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_dev, 100), s1inc_getDistributionFn(s1model)), "dev");
+var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_train, evalSamples), s1inc_getDistributionFn(s1model)), "train");
+var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_dev, evalSamples), s1inc_getDistributionFn(s1model)), "dev");
 
 var s_model = s1inc_getSModel(s1model);
 var meaningFn = s1inc_getMeaningFn(s1model); // utterance x world -> [0, 1]
@@ -107,12 +110,12 @@ var meaningFn = s1inc_getMeaningFn(s1model); // utterance x world -> [0, 1]
 var devIncEval = gameppl.util.listExpectation(map(function(datum) {
     var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
     return enc_modelExpectedIncrement(s_model, undefined, util_objCategorical, scoreFn, datum.output);
-}, gameppl.util._first(D_dev, 100)));
+}, gameppl.util._first(D_dev, incSamples)));
 
 var trainIncEval = gameppl.util.listExpectation(map(function(datum) {
     var scoreFn = function(utterance) { return meaningFn(utterance, datum.input); };
     return enc_modelExpectedIncrement(s_model, undefined, util_objCategorical, scoreFn, datum.output);
-}, gameppl.util._first(D_train, 100)));
+}, gameppl.util._first(D_train, incSamples)));
 
 var devIncHeadings = mapN(function(n) { "dev.inc." + n }, devIncEval.length);
 var trainIncHeadings = mapN(function(n) { "train.inc." + n }, trainIncEval.length);
