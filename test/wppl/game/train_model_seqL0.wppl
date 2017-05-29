@@ -121,12 +121,12 @@ var s_model = s_initTrainedModel({
 
 display("Finished training... outputting example predictions.");
 
-color_data_displayExamplesL(D_dev, qualSamples, l0model, l0seq_getDistributionFn(l0model));
+color_data_displayExamplesL(D_dev, obsf, uttf, qualSamples, l0model, l0seq_getDistributionFn(l0model));
 
 display("Evaluating L0 accuracy");
 
 var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, gameppl.util._first(D_train, evalSamples), l0seq_getDistributionFn(l0model)), "l0.train");
-var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, gameppl.util._first(D_train, evalSamples), l0seq_getDistributionFn(l0model)), "l0.dev");
+var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncModeAccuracy(l0model, gameppl.util._first(D_dev, evalSamples), l0seq_getDistributionFn(l0model)), "l0.dev");
 
 display("Evaluating L1 accuracy...");
 

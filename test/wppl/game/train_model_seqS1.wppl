@@ -110,7 +110,7 @@ var s1model = s1seq_initTrainedModel({
 
 display("Finished training... outputting example predictions.");
 
-color_data_displayExamplesS(D_dev, qualSamples, s1model, s1seq_getDistributionFn(s1model));
+color_data_displayExamplesS(D_dev, inputf, outputf, qualSamples, s1model, s1seq_getDistributionFn(s1model));
 
 var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_train, evalSamples), s1seq_getDistributionFn(s1model)), "train");
 var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s1model, gameppl.util._first(D_dev, evalSamples), s1seq_getDistributionFn(s1model)), "dev");
