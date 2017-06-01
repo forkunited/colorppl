@@ -1,7 +1,8 @@
-var color_data_displayExamplesS = function(D, nPerCondition, s_model, distFn) {
-    var D_far = gameppl.data._first(D, nPerCondition, gameppl.util.makeDatumInfoIndicator("condition", "far"));
-    var D_close = gameppl.data._first(D, nPerCondition, gameppl.util.makeDatumInfoIndicator("condition", "close"));
-    var D_split = gameppl.data._first(D, nPerCondition, gameppl.util.makeDatumInfoIndicator("condition", "split"));
+var color_data_displayExamplesS = function(D, inputf, outputf, nPerCondition, s_model, distFn) {
+    var D_far = gameppl.util._first(D, nPerCondition, gameppl.data.makeDatumInfoIndicator("condition", "far"));
+    var D_close = gameppl.util._first(D, nPerCondition, gameppl.data.makeDatumInfoIndicator("condition", "close"));
+    var D_split = gameppl.util._first(D, nPerCondition, gameppl.data.makeDatumInfoIndicator("condition", "split"));
+
     var D_small = D_far.concat(D_close).concat(D_split);
 
     map(function(datum) {
@@ -19,18 +20,22 @@ var color_data_displayExamplesS = function(D, nPerCondition, s_model, distFn) {
         display("Output distribution: ")
         var s_Dist = enc_modelDistribution(s_model, datum.input, distFn);
         var sReadableDist = map(function(kvPair) {
-            //var indices = map(function(idx) { idx*1 } , kvPair[0].split(","))
-            display(gameppl.feature.getFeatureSetDimensionsFromIndices(outputf, JSON.parse(kvPair[0])) + ": " + kvPair[1]);
+            if (!kvPair[0].startsWith("[")) {
+                var indices = map(function(idx) { idx*1 } , kvPair[0].split(","))
+                display(gameppl.feature.getFeatureSetDimensionsFromIndices(outputf, indices) + ": " + kvPair[1]);
+            } else {
+                display(gameppl.feature.getFeatureSetDimensionsFromIndices(outputf, JSON.parse(kvPair[0])) + ": " + kvPair[1]);
+            }
         }, gameppl.dist.distToArray(s_Dist, 3));
 
         display("\n");
     }, D_small);
 };
 
-var color_data_displayExamplesL = function(D, nPerCondition, l_model, distFn) {
-    var D_far = gameppl.data._first(D_dev, nPerCondition, gameppl.util.makeDatumInfoIndicator("condition", "far"));
-    var D_close = gameppl.data._first(D_dev, nPerCondition, gameppl.util.makeDatumInfoIndicator("condition", "close"));
-    var D_split = gameppl.data._first(D_dev, nPerCondition, gameppl.util.makeDatumInfoIndicator("condition", "split"));
+var color_data_displayExamplesL = function(D, obsf, uttf, nPerCondition, l_model, distFn) {
+    var D_far = gameppl.util._first(D, nPerCondition, gameppl.data.makeDatumInfoIndicator("condition", "far"));
+    var D_close = gameppl.util._first(D, nPerCondition, gameppl.data.makeDatumInfoIndicator("condition", "close"));
+    var D_split = gameppl.util._first(D, nPerCondition, gameppl.data.makeDatumInfoIndicator("condition", "split"));
     var D_small = D_far.concat(D_close).concat(D_split);
 
     map(function (datum) {

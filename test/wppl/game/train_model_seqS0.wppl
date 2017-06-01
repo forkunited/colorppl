@@ -68,7 +68,7 @@ var trainingParams = {
 
 var s0model = enc_initTrainedModel(trainingParams, D_train);
 
-color_data_displayExamplesS(D_dev, qualSamples, s0model, util_objSoftmaxCategorical);
+color_data_displayExamplesS(D_dev, inputf, outputf, qualSamples, s0model, util_objSoftmaxCategorical);
 
 var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s0model, gameppl.util._first(D_train, evalSamples), util_objSoftmaxCategorical, true), "train");
 var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s0model, gameppl.util._first(D_dev, evalSamples), util_objSoftmaxCategorical, true), "dev");

@@ -30,8 +30,7 @@ var inputF = gameppl.feature.loadFeatureMatrix(rootDir + "/examples/features/mat
 var outputF = gameppl.feature.loadFeatureMatrix(rootDir + "/examples/features/mat/" + outputFName);
 
 display("Constructing data set...");
-
-var D = data_makeFromFeatureMatrices(inputF, outputF, { inputType : DATA_TYPE_VECTOR, outputType : DATA_TYPE_SCALAR_SEQUENCE, maxSequenceLength : maxUtteranceLength, maxOutputSequenceLength: maxUtteranceLength });
+var D = data_makeFromFeatureMatrices(inputF, outputF, { inputType : DATA_TYPE_VECTOR, outputType : DATA_TYPE_SCALAR_SEQUENCE, maxOutputSequenceLength: maxUtteranceLength });
 var partition = gameppl.partition.load(rootDir + "/examples/games/splits/" + splitName);
 var splitFn = (splitType === "GAME") ? gameppl.data.getDatumGame : (splitType === "ROUND") ? gameppl.data.getDatumRound : gameppl.data.getDatumGameRound
 
@@ -115,7 +114,7 @@ var s_model = s_initTrainedModel({
 
 display("Finished training... outputting example predictions.");
 
-color_data_displayExamplesS(D_dev, qualSamples, s1model, s1seqSampling_getDistributionFn(s1model));
+color_data_displayExamplesS(D_dev, inputf, outputf, qualSamples, s1model, s1seqSampling_getDistributionFn(s1model));
 
 display ("Evaluating ll...");
 

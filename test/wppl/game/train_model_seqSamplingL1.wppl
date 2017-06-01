@@ -128,7 +128,7 @@ var s_model = s_initTrainedModel({
 
 display("Finished training... outputting example predictions.");
 
-color_data_displayExamplesL(D_dev, qualSamples, l1model, l1seqSampling_getDistributionFn(l1model));
+color_data_displayExamplesL(D_dev, obsf, uttf, qualSamples, l1model, l1seqSampling_getDistributionFn(l1model));
 
 display("Evaluating accuracy...");
 
