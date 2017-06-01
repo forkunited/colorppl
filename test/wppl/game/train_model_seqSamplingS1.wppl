@@ -47,15 +47,7 @@ var s0inputDimension = 3;
 
 display("(Vocabulary size: " + utteranceDimension + ")");
 
-var s0inputFn = function(world) {
-    var targetIndex = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sTargetIndex");
-
-    var H = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sH_" + targetIndex);
-    var S = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sS_" + targetIndex);
-    var L = gameppl.feature.getTensorFeatureRangeStart(world, inputf, "sL_" + targetIndex);
-
-    return Vector([H, S, L]);
-};
+var s0inputFn = function(observation, hidden) { return observation[hidden]; };
 
 var s1model = s1seqSampling_initTrainedModel({
     maxUtteranceLength : maxUtteranceLength,
