@@ -2,6 +2,7 @@
 // webppl test/wppl/game/train_model_seqS1.wppl --require ../lib/webppl-nn --require ../gameppl --require . --random-seed 1 --rootDir . --inputF incS1_in --outputF incS1_out --iterations 100 --latentDim 25 --splitName game_34_33_33 --splitType GAME_ROUND --sIterations 100
 
 var args = util_parseArgs();
+var name = args["name"];
 var rootDir = args["rootDir"];
 var inputFName = args["inputF"];
 var outputFName = args["outputF"];
@@ -131,5 +132,5 @@ var trainIncEval = gameppl.util.listExpectation(map(function(datum) {
 var devIncHeadings = mapN(function(n) { "dev.inc." + n }, devIncEval.length);
 var trainIncHeadings = mapN(function(n) { "train.inc." + n }, trainIncEval.length);
 
-display("F\tseed\titerations\t" + trainEval[0].join("\t") + "\t" + devEval[0].join("\t") + "\t" + devIncHeadings.join("\t") + "\t" + trainIncHeadings.join("\t"));
-display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t") + "\t" + devIncEval.join("\t") + "\t" + trainIncEval.join("\t"));
+display("name\tF\tseed\titerations\t" + trainEval[0].join("\t") + "\t" + devEval[0].join("\t") + "\t" + devIncHeadings.join("\t") + "\t" + trainIncHeadings.join("\t"));
+display(name + "\t" + inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t") + "\t" + devIncEval.join("\t") + "\t" + trainIncEval.join("\t"));
