@@ -30,6 +30,9 @@ var D_split = gameppl.partition.split(partition, D, splitFn);
 var D_train = D_split['train'];
 var D_dev = D_split['dev'];
 
+display("Training size: " + D_train.length);
+display("Dev size: " + D_dev.length);
+
 var encoderType = ENC_NN;
 var encoderParamFn = function() {
     return {
