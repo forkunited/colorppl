@@ -2,6 +2,7 @@
 // webppl test/wppl/game/train_model_seqS1.wppl --require ../lib/webppl-nn --require ../gameppl --require . --random-seed 1 --rootDir . --inputF incS1_in --outputF incS1_out --iterations 100 --latentDim 25 --splitName game_34_33_33 --splitType GAME_ROUND --sIterations 100
 
 var args = util_parseArgs();
+var name = args["name"];
 var rootDir = args["rootDir"];
 var inputFName = args["inputF"];
 var outputFName = args["outputF"];
@@ -10,13 +11,14 @@ var latentDim = args["latentDim"]*1;
 var splitName = args["splitName"];
 var splitType = args["splitType"];
 var sIterations = args["sIterations"]*1;
+var s0sampleDistractors = (args["s0sampleDistractors"] === 'true');
+var s0sampleSize = args["s0sampleSize"]*1;
 var evalSamples = args["evalSamples"]*1;
 var incSamples = args["incSamples"]*1;
 var qualSamples = args["qualSamples"]*1;
 
 var rsaAlpha = 1.0;
 var maxUtteranceLength = 5;
-var s0sampleSize = 5;
 var batchSize = 10;
 var gradientSamples = 1;
 var approximationBeamSize = 5;
@@ -56,6 +58,7 @@ var s1model = s1seqSampling_initTrainedModel({
     s0inputDimension : s0inputDimension,
     latentDimension : latentDim,
     s0sampleSize : s0sampleSize,
+    s0sampleDistractors : s0sampleDistractors,
     iterations : iterations,
     sIterations : sIterations,
     gradientSamples : gradientSamples,
@@ -140,5 +143,5 @@ var trainIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpec
 
 var keysValues = evaluation_flattenedKeyValueStrings([trainEval, devEval, trainL0Eval, devL0Eval, trainL1Eval, devL1Eval, trainIncEval, devIncEval]);
 
-display("F\tseed\titerations\t" + keysValues[0]);
-display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + keysValues[1]);
+display("name\tF\tseed\titerations\t" + keysValues[0]);
+display(name + "\t" + inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + keysValues[1]);

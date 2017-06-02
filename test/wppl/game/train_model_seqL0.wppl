@@ -2,6 +2,7 @@
 // webppl test/wppl/game/train_model_seqL0.wppl --require ../lib/webppl-nn --require ../gameppl --require . --random-seed 1 --rootDir . --uttF L_utt --obsF L_obs --outputF L_out --iterations 100 --latentDim 50 --splitName game_34_33_33 --splitType GAME_ROUND --sIterations 100
 
 var args = util_parseArgs();
+var name = args["name"];
 var rootDir = args["rootDir"];
 var uttFName = args["uttF"];
 var obsFName = args["obsF"]
@@ -11,6 +12,8 @@ var latentDim = args["latentDim"]*1;
 var splitName = args["splitName"];
 var splitType = args["splitType"];
 var sIterations = args["sIterations"]*1;
+var s0sampleDistractors = (args["s0sampleDistractors"] === 'true');
+var s0sampleSize = args["s0sampleSize"]*1;
 var evalSamples = args["evalSamples"]*1;
 var incSamples = args["incSamples"]*1;
 var qualSamples = args["qualSamples"]*1;
@@ -133,7 +136,8 @@ display("Evaluating L1 accuracy...");
 var l1dist = l0seq_initL1DistributionFn(l0model, {
     s0inputFn: s0inputFn,
     rsaAlpha: rsaAlpha,
-    s0sampleSize: 5,
+    s0sampleSize: s0sampleSize,
+    s0sampleDistractors : s0sampleDistractors,
     s0inputDimension: 3,
     iterations: iterations,
     gradientSamples: gradientSamples,
@@ -158,5 +162,5 @@ var trainIncEval = evaluation_modelEncEvalFlattened(evaluation_modelMeaningExpec
 
 var keysValues = evaluation_flattenedKeyValueStrings([trainEval, devEval, trainL1Eval, devL1Eval, trainIncEval, devIncEval]);
 
-display("F\tseed\titerations\t" + keysValues[0]);
-display(obsFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + keysValues[1]);
+display("name\tF\tseed\titerations\t" + keysValues[0]);
+display(name + "\t" + obsFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + keysValues[1]);

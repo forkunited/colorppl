@@ -2,6 +2,7 @@
 // webppl test/wppl/train_model_seqS0.wppl --require webppl-nn --require . --random-seed 1 --iterations 100 --latentDim 25 --inputF Ld_in --outputF Ld_out --splitName default --splitType GAME_ROUND
 
 var args = util_parseArgs();
+var name = args["name"];
 var rootDir = args["rootDir"];
 var inputFName = args["inputF"];
 var outputFName = args["outputF"];
@@ -76,5 +77,5 @@ color_data_displayExamplesS(D_dev, inputf, outputf, qualSamples, s0model, util_o
 var trainEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s0model, gameppl.util._first(D_train, evalSamples), util_objSoftmaxCategorical, true), "train");
 var devEval = evaluation_modelEncEvalFlattened(evaluation_modelEncLL(s0model, gameppl.util._first(D_dev, evalSamples), util_objSoftmaxCategorical, true), "dev");
 
-display("F\tseed\titerations\t" + trainEval[0].join("\t") + "\t" + devEval[0].join("\t"));
-display(inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t"));
+display("name\tF\tseed\titerations\t" + trainEval[0].join("\t") + "\t" + devEval[0].join("\t"));
+display(name + "\t" + inputFName + "\t" + args["random-seed"] + "\t" + iterations + "\t" + trainEval[1].join("\t") + "\t" + devEval[1].join("\t"));
